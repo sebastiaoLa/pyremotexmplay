@@ -6,7 +6,7 @@ class Th(threading.Thread):
 		self.go = True
 		threading.Thread.__init__(self)
 		HOST = '0.0.0.0'              # Endereco IP do Servidor
-		PORT = 5060            # Porta que o Servidor esta
+		PORT = 7060            # Porta que o Servidor esta
 		self.udp2 = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		orig = (HOST, PORT)
 		self.udp2.bind(orig)
@@ -16,7 +16,8 @@ class Th(threading.Thread):
 			try:
 				self.udp2.settimeout(1)
 				msg, cliente = self.udp2.recvfrom(1024)
-				print msg
+				if msg != "EOF":
+					print msg
 			except:
 				pass
 		
@@ -26,7 +27,7 @@ class Th(threading.Thread):
 th = Th()
 th.start()
 HOST = '127.0.0.1'  # Endereco IP do Servidor
-PORT = 5000            # Porta que o Servidor esta
+PORT = 7000            # Porta que o Servidor esta
 udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 dest = (HOST, PORT)
 print 'Para sair use CTRL+X\n'

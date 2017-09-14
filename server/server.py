@@ -11,6 +11,21 @@ def checkXm():
 	
 	return "xmplay.exe" in s
 
+def send_commands(client):
+	HOST = cliente[0]  # Endereco IP do Servidor
+	PORT = 7060            # Porta que o Servidor esta
+	udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+	dest = (HOST, PORT)
+	comands = availableCommands
+	comands += ['play #','quit','charge','commands','help']
+	for i in comands:
+		try:
+			udp.sendto (i[0], dest)
+		except:
+			pass
+	udp.sendto ("EOF", dest)
+	udp.close()
+
 def carrega():
 	global mp3only
 	
@@ -43,7 +58,7 @@ def lista(cliente):
 	global mp3only
 	
 	HOST = cliente[0]  # Endereco IP do Servidor
-	PORT = 5060            # Porta que o Servidor esta
+	PORT = 7060            # Porta que o Servidor esta
 	udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 	dest = (HOST, PORT)
 	
@@ -64,7 +79,7 @@ def play(arg):
 	os.system("DDE_run -s XMPlay -t System -c key10")
 	
 	os.system("start D:\\Musicas\\xmplay\\xmplay.exe  -play \""+mp3only[arg-1][1]+"\"")
-	time.sleep(0.1)
+	time.sleep(0.3)
 	os.system("start D:\\Musicas\\xmplay\\xmplay.exe  -list \""+mypath+"\"")
 	
 	
@@ -76,7 +91,7 @@ if checkXm() ==  False:
 	print "Xmplay iniciado"
 
 HOST = '0.0.0.0'              # Endereco IP do Servidor
-PORT = 5000            # Porta que o Servidor esta
+PORT = 7000            # Porta que o Servidor esta
 udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 orig = (HOST, PORT)
 udp.bind(orig)
@@ -118,6 +133,8 @@ while True:
 	elif msg.lower() == "quit":
 		os.system("DDE_run -s XMPlay -t System -c key10")
 		exit()
+	elif msg.lower() in ['commands','help']:
+		send_commands()
 	else:
 		for i in range(len(availableCommands)):
 			if msg.lower() == availableCommands[i].lower():
