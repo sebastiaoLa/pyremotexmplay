@@ -26,7 +26,7 @@ class Th(threading.Thread):
 
 th = Th()
 th.start()
-HOST = '127.0.0.1'  # Endereco IP do Servidor
+HOST = raw_input("Digite o ip do servidor: ")  # Endereco IP do Servidor
 PORT = 7000            # Porta que o Servidor esta
 udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 dest = (HOST, PORT)
