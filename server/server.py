@@ -12,11 +12,12 @@ class Server(threading.Thread):
 		self.segue = True
 		threading.Thread.__init__(self)
 		self.mypath = "D:\Musicas\Musicas"
+		self.XmPlayPath = "..\\..\\xmplay\\xmplay.exe"
 		self.carrega()
 		if self.checkXm() ==  False:
 			print "Xmplay nao iniciado"
 			print "Iniciando..."
-			os.system("start D:\\Musicas\\xmplay\\xmplay.exe")
+			os.system("start "+self.XmPlayPath)
 			print "Xmplay iniciado"
 
 		HOST = '0.0.0.0'              # Endereco IP do Servidor
@@ -49,7 +50,22 @@ class Server(threading.Thread):
 			'DDE_run -s XMPlay -t System -c key516',
 			
 		]
-
+	
+	def queue(self,arg):
+		
+		os.system('DDE_run -s XMPlay -t System -c key340')
+		os.system('DDE_run -s XMPlay -t System -c key342')
+		os.system('DDE_run -s XMPlay -t System -c key370')
+		
+		os.system("start "+self.XmPlayPath+"  -list \""+self.mp3only[arg-1][1]+"\"")
+		
+		os.system('DDE_run -s XMPlay -t System -c key340')
+		os.system('DDE_run -s XMPlay -t System -c key337')
+		os.system('DDE_run -s XMPlay -t System -c key374')
+		
+		os.system("start "+self.XmPlayPath+"  -list \""+self.mypath+"\"")
+		
+	
 	def go(self,url):
 		driver = webdriver.Chrome()
 		driver.get("http://convert2mp3.net/en/")
@@ -65,6 +81,29 @@ class Server(threading.Thread):
 	
 		return href
 	
+	def goYou(self,termo):
+		try:
+			driver = webdriver.Chrome()
+			driver.get("http:\\google.com")
+			driver.find_element_by_xpath('//*[@id="lst-ib"]').send_keys(termo)
+			driver.find_element_by_xpath('//*[@id="lst-ib"]').send_keys(Keys.ENTER)
+			driver.find_element_by_xpath('//*[@id="hdtb-msb-vis"]/div[2]/a').click()
+			
+			urls = driver.find_elements_by_class_name("_Rm")
+			
+			for i in urls:
+				if 'youtube.com' in i.text:
+					url = i.text
+					break
+			driver.close()
+			return self.go(url)
+		except Exception as ex:
+			print ex
+			try:
+				driver.close()
+			except:
+				pass
+	
 	def checkXm(self):
 		s = subprocess.check_output('tasklist', shell=True)
 		
@@ -76,7 +115,7 @@ class Server(threading.Thread):
 		udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		dest = (HOST, PORT)
 		comands = self.availableCommands
-		comands += ['play #','quit','charge','commands','help','busca']
+		comands += ['play #','quit','charge','commands','help','busca','busca youtube','queue #']
 		udp.sendto ("start", dest)
 		udp.sendto ("#### Os comandos disponiveis são: ####", dest)
 		for i in comands:
@@ -130,16 +169,16 @@ class Server(threading.Thread):
 		udp.close()
 		
 	def play(self,arg):
-		print "D:\\Musicas\\xmplay.exe -play "+self.mp3only[arg-1][1],"D:\\Musicas\\xmplay.exe -list "+self.mypath
+		print self.XmPlayPath+" -play "+self.mp3only[arg-1][1],"D:\\Musicas\\xmplay.exe -list "+self.mypath
 		
 		os.system("DDE_run -s XMPlay -t System -c key341")
 		os.system("DDE_run -s XMPlay -t System -c key370")
 		os.system("DDE_run -s XMPlay -t System -c key10")
 		
-		os.system("start D:\\Musicas\\xmplay\\xmplay.exe  -play \""+self.mp3only[arg-1][1]+"\"")
+		os.system("start "+self.XmPlayPath+"  -play \""+self.mp3only[arg-1][1]+"\"")
 		while self.checkXm() == False:
 			pass
-		os.system("start D:\\Musicas\\xmplay\\xmplay.exe  -list \""+self.mypath+"\"")
+		os.system("start "+self.XmPlayPath+"  -list \""+self.mypath+"\"")
 		
 	def playUrl(self,arg):
 		print arg
@@ -152,12 +191,30 @@ class Server(threading.Thread):
 		
 		print url
 		
-		os.system("start D:\\Musicas\\xmplay\\xmplay.exe  -play \""+url+"\"")
+		os.system("start "+self.XmPlayPath+"  -play \""+url+"\"")
 		
 		while self.checkXm() == False:
 			pass
 		time.sleep(2)
-		os.system("start D:\\Musicas\\xmplay\\xmplay.exe  -list \""+self.mypath+"\"")
+		os.system("start "+self.XmPlayPath+"  -list \""+self.mypath+"\"")
+		
+	def playYou(self,arg):
+		print arg
+		
+		os.system("DDE_run -s XMPlay -t System -c key341")
+		os.system("DDE_run -s XMPlay -t System -c key370")
+		os.system("DDE_run -s XMPlay -t System -c key10")
+		
+		url = self.goYou(arg)
+		
+		print url
+		
+		os.system("start "+self.XmPlayPath+"  -play \""+url+"\"")
+		
+		while self.checkXm() == False:
+			pass
+		time.sleep(2)
+		os.system("start "+self.XmPlayPath+"  -list \""+self.mypath+"\"")
 	
 	def search(self,arg,cliente):
 		HOST = cliente[0]  # Endereco IP do Servidor
@@ -195,8 +252,16 @@ class Server(threading.Thread):
 					self.carrega()
 				elif msg.lower() == 'list':
 					self.lista(cliente)
-				elif 'busca ' in msg.lower():
+				elif 'busca ' in msg.lower() and 'youtube' not in msg.lower():
 					self.search(msg[6:],cliente)
+				elif 'busca ' in msg.lower() and 'youtube' in msg.lower() :
+					self.goYou(msg[14:])
+				elif 'queue ' in msg.lower():
+					try:
+						num = int(msg.lower()[5:])
+						self.queue(num)
+					except:
+						pass
 				elif msg.lower() == "quit":
 					os.system("DDE_run -s XMPlay -t System -c key10")
 					self.para()
