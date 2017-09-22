@@ -121,7 +121,6 @@ class Server(threading.Thread):
 		for i in comands:
 			try:
 				udp.sendto (i, dest)
-				time.sleep(0.1)
 			except:
 				pass
 		udp.sendto ("EOF", dest)
@@ -163,7 +162,6 @@ class Server(threading.Thread):
 		for i in self.mp3only:
 			try:
 				udp.sendto (i[0], dest)
-				time.sleep(0.01)
 			except:
 				pass
 		udp.close()
@@ -195,7 +193,7 @@ class Server(threading.Thread):
 		
 		while self.checkXm() == False:
 			pass
-		time.sleep(2)
+		time.sleep(5)
 		os.system("start "+self.XmPlayPath+"  -list \""+self.mypath+"\"")
 		
 	def playYou(self,arg):
@@ -233,6 +231,13 @@ class Server(threading.Thread):
 		udp.close()
 		
 	
+	def test(self,arg):
+		try:
+			int(arg)
+			return True
+		except:
+			return False
+	
 	def run(self):
 		while self.segue:
 			try:
@@ -267,6 +272,8 @@ class Server(threading.Thread):
 					self.para()
 				elif msg.lower() in ['commands','help']:
 					self.send_commands(cliente)
+				#elif 'vm-up ' in msg.lower() and self.test(msg.lower()[5:]):
+				#	
 				else:
 					for i in range(len(self.availableCommands)):
 						if msg.lower() == self.availableCommands[i].lower():
