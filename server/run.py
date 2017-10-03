@@ -14,9 +14,11 @@ def main():
     threadServer.start()
     print("Server Started!")
     print("write exit anytime to exit")
-    while (raw_input() != "exit"):
-        pass
-    
+    while (threadServer.segue):
+        a = raw_input()
+        if a.lower() == 'exit':
+			break
+		
     threadServer.para()
     sys.exit()
 

@@ -68,6 +68,7 @@ class Server(threading.Thread):
 	
 	def go(self,url):
 		driver = webdriver.Chrome()
+		driver.maximize_window()
 		driver.get("http://convert2mp3.net/en/")
 		driver.find_element_by_name("url").send_keys(url)
 		driver.find_element_by_xpath("//*[@id=\"convertForm\"]/fieldset/button").click()
@@ -85,18 +86,18 @@ class Server(threading.Thread):
 		try:
 			driver = webdriver.Chrome()
 			driver.get("http:\\google.com")
-			driver.find_element_by_xpath('//*[@id="lst-ib"]').send_keys(termo)
+			driver.find_element_by_xpath('//*[@id="lst-ib"]').send_keys(termo+" AUDIO ")
 			driver.find_element_by_xpath('//*[@id="lst-ib"]').send_keys(Keys.ENTER)
 			driver.find_element_by_xpath('//*[@id="hdtb-msb-vis"]/div[2]/a').click()
 			
 			urls = driver.find_elements_by_class_name("_Rm")
-			
 			for i in urls:
 				if 'youtube.com' in i.text:
 					url = i.text
 					break
 			driver.close()
-			return self.go(url)
+			self.playUrl(url)
+			os.system("start baixar \""+url+"\"")
 		except Exception as ex:
 			print ex
 			try:
@@ -109,6 +110,16 @@ class Server(threading.Thread):
 		
 		return "xmplay.exe" in s
 
+	def send_info(self,message,cliente):
+		HOST = cliente[0]  # Endereco IP do Servidor
+		PORT = 7060            # Porta que o Servidor esta
+		udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+		dest = (HOST, PORT)
+		comands = self.availableCommands
+		time.sleep(0.01)
+		udp.sendto (message, dest)
+		udp.close()
+	
 	def send_commands(self,cliente):
 		HOST = cliente[0]  # Endereco IP do Servidor
 		PORT = 7060            # Porta que o Servidor esta
@@ -116,14 +127,14 @@ class Server(threading.Thread):
 		dest = (HOST, PORT)
 		comands = self.availableCommands
 		comands += ['play #','quit','charge','commands','help','busca','busca youtube','queue #']
-		udp.sendto ("start", dest)
+		time.sleep(0.01)
 		udp.sendto ("#### Os comandos disponiveis são: ####", dest)
 		for i in comands:
 			try:
+				time.sleep(0.01)
 				udp.sendto (i, dest)
 			except:
 				pass
-		udp.sendto ("EOF", dest)
 		udp.close()
 
 	def carrega(self):
@@ -150,7 +161,6 @@ class Server(threading.Thread):
 		for i in range(len(self.mp3only)):
 			self.mp3only[i][0] = str(i+1) + " - " + self.mp3only[i][0]
 		
-		self.mp3only.append(["EOF","EOF"])
 		print "Done!"
 
 	def lista(self,cliente):
@@ -158,9 +168,9 @@ class Server(threading.Thread):
 		PORT = 7060            # Porta que o Servidor esta
 		udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		dest = (HOST, PORT)
-		udp.sendto ("start", dest)
 		for i in self.mp3only:
 			try:
+				time.sleep(0.01)
 				udp.sendto (i[0], dest)
 			except:
 				pass
@@ -181,11 +191,12 @@ class Server(threading.Thread):
 	def playUrl(self,arg):
 		print arg
 		
+		url = self.go(arg)
+		
+		
 		os.system("DDE_run -s XMPlay -t System -c key341")
 		os.system("DDE_run -s XMPlay -t System -c key370")
 		os.system("DDE_run -s XMPlay -t System -c key10")
-		
-		url = self.go(arg)
 		
 		print url
 		
@@ -196,38 +207,18 @@ class Server(threading.Thread):
 		time.sleep(5)
 		os.system("start "+self.XmPlayPath+"  -list \""+self.mypath+"\"")
 		
-	def playYou(self,arg):
-		print arg
-		
-		os.system("DDE_run -s XMPlay -t System -c key341")
-		os.system("DDE_run -s XMPlay -t System -c key370")
-		os.system("DDE_run -s XMPlay -t System -c key10")
-		
-		url = self.goYou(arg)
-		
-		print url
-		
-		os.system("start "+self.XmPlayPath+"  -play \""+url+"\"")
-		
-		while self.checkXm() == False:
-			pass
-		time.sleep(2)
-		os.system("start "+self.XmPlayPath+"  -list \""+self.mypath+"\"")
-	
 	def search(self,arg,cliente):
 		HOST = cliente[0]  # Endereco IP do Servidor
 		PORT = 7060            # Porta que o Servidor esta
 		udp = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 		dest = (HOST, PORT)
-		udp.sendto ("start", dest)
 		for i in self.mp3only:
 			if arg.lower() in i[0].lower():
 				try:
-					udp.sendto (i[0], dest)
 					time.sleep(0.01)
+					udp.sendto (i[0], dest)
 				except:
 					pass
-		udp.sendto ("end", dest)
 		udp.close()
 		
 	
@@ -251,30 +242,42 @@ class Server(threading.Thread):
 					try:
 						num = int(msg.lower()[4:].strip())
 						self.play(num)
+						self.send_info("Comando recebido: tocando musica: "+str(num),cliente)
 					except:
 						self.playUrl(msg[4:])
+						self.send_info("Comando recebido: tocando video: "+msg[4:],cliente)
 				elif msg.lower() == 'charge':
+					self.send_info("Comando recebido: Recarregando lista || Aguarde ||",cliente)
 					self.carrega()
+					self.send_info("Comando recebido: Carregada",cliente)
 				elif msg.lower() == 'list':
+					self.send_info("Comando recebido: Enviando lista",cliente)
 					self.lista(cliente)
 				elif 'busca ' in msg.lower() and 'youtube' not in msg.lower():
+					self.send_info("Comando recebido: Buscando",cliente)
 					self.search(msg[6:],cliente)
 				elif 'busca ' in msg.lower() and 'youtube' in msg.lower() :
+					self.send_info("Comando recebido: Iniciando Youtube "+msg[14:],cliente)
 					self.goYou(msg[14:])
 				elif 'queue ' in msg.lower():
 					try:
+						self.send_info("Comando recebido: Colocando musica na sequencia",cliente)
 						num = int(msg.lower()[5:])
 						self.queue(num)
+						
 					except:
 						pass
 				elif msg.lower() == "quit":
+					self.send_info("Comando recebido: Finalizando",cliente)
 					os.system("DDE_run -s XMPlay -t System -c key10")
 					self.para()
 				elif msg.lower() in ['commands','help']:
+					self.send_info("Comando recebido: Exibindo ajuda",cliente)
 					self.send_commands(cliente)
 				#elif 'vm-up ' in msg.lower() and self.test(msg.lower()[5:]):
 				#	
 				else:
+					self.send_info("Comando recebido: Executando",cliente)
 					for i in range(len(self.availableCommands)):
 						if msg.lower() == self.availableCommands[i].lower():
 							os.system(self.actualCommands[i])
